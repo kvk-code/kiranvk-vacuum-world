@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vacuum World Agent Simulator</title>
+<link rel="canonical" href="https://kiranvk.me/ai/vacuum/">
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
+}
+
+/* ===== HEADER ===== */
+header {
+  background: linear-gradient(135deg, #0f3460, #16213e);
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border-bottom: 3px solid #d4a853;
+}
+header h1 {
+  font-size: 1.75rem;
+  color: #d4a853;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.5px;
+}
+header p {
+  font-size: 0.95rem;
+  color: #a0a0c0;
+  font-style: italic;
+}
+
+/* ===== TAB BAR ===== */
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  background: #0f3460;
+  border-bottom: 2px solid #d4a85344;
+  padding: 0;
+  gap: 0;
+}
+.tab-btn {
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 0.7rem 0.5rem;
+  background: transparent;
+  border: none;
+  color: #8888aa;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border-bottom: 3px solid transparent;
+  text-align: center;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: #d4a853; background: #16213e; }
+.tab-btn.active {
+  color: #d4a853;
+  border-bottom-color: #d4a853;
+  background: #16213e;
+}
+
+/* ===== MAIN CONTENT ===== */
+main {
+  flex: 1;
+  padding: 1rem;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== CARDS ===== */
+.card {
+  background: #16213e;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid #1a3a5c;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.card h2 {
+  color: #d4a853;
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #1a3a5c;
+}
+.card h3 {
+  color: #c0c0d0;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== VACUUM WORLD ROOMS ===== */
+.vacuum-world {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+.room {
+  width: 160px;
+  height: 120px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
+  position: relative;
+  user-select: none;
+}
+.room.clean {
+  background: #2d6a4f;
+  border-color: #40916c;
+}
+.room.dirty {
+  background: #774936;
+  border-color: #9c6644;
+}
+.room.agent-here {
+  border-color: #d4a853;
+  box-shadow: 0 0 20px rgba(212,168,83,0.4);
+}
+.room-label {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 0.25rem;
+}
+.room-status {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.room .agent-icon {
+  position: absolute;
+  top: -18px;
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  transition: all 0.3s ease;
+}
+.room-connector {
+  width: 40px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  position: relative;
+}
+.room-connector::after {
+  content: '· · ·';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #555;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+}
+
+/* ===== BUTTONS ===== */
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: 2px solid #d4a853;
+  background: transparent;
+  color: #d4a853;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 70px;
+}
+.btn:hover { background: #d4a853; color: #1a1a2e; }
+.btn:active { transform: scale(0.95); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.primary { background: #d4a853; color: #1a1a2e; }
+.btn.primary:hover { background: #e6bc6a; }
+.btn.danger { border-color: #e74c3c; color: #e74c3c; }
+.btn.danger:hover { background: #e74c3c; color: #fff; }
+.btn.success { border-color: #2ecc71; color: #2ecc71; }
+.btn.success:hover { background: #2ecc71; color: #1a1a2e; }
+
+/* ===== SCORE & STATS ===== */
+.stats-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+.stat-box {
+  background: #0f3460;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 90px;
+  border: 1px solid #1a3a5c;
+}
+.stat-label {
+  font-size: 0.7rem;
+  color: #8888aa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #d4a853;
+}
+
+/* ===== ACTION LOG ===== */
+.log-area {
+  background: #0a0a1a;
+  border-radius: 8px;
+  padding: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  border: 1px solid #1a3a5c;
+}
+.log-entry {
+  padding: 0.2rem 0;
+  border-bottom: 1px solid #111;
+  color: #a0a0c0;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-entry .step-num { color: #d4a853; font-weight: 700; }
+.log-entry .action { color: #2ecc71; }
+.log-entry .percept { color: #e67e22; }
+
+/* ===== AGENT SELECTOR ===== */
+.agent-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.agent-select-row label {
+  font-weight: 600;
+  color: #c0c0d0;
+  font-size: 0.9rem;
+}
+select {
+  background: #0f3460;
+  color: #e0e0e0;
+  border: 2px solid #1a3a5c;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+select:focus { outline: none; border-color: #d4a853; }
+
+/* ===== SPEED SLIDER ===== */
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+.speed-row label {
+  font-size: 0.85rem;
+  color: #8888aa;
+  min-width: 50px;
+}
+input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: #0f3460;
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #d4a853;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #d4a853;
+  cursor: pointer;
+  border: none;
+}
+.speed-val {
+  font-size: 0.8rem;
+  color: #d4a853;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ===== INTERNAL STATE PANEL ===== */
+.internal-state {
+  background: #0a0a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #1a3a5c;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  min-height: 80px;
+}
+.internal-state .state-line {
+  margin-bottom: 0.3rem;
+  line-height: 1.6;
+}
+.internal-state .state-key { color: #d4a853; }
+.internal-state .state-val { color: #2ecc71; }
+.internal-state .state-arrow { color: #e74c3c; font-weight: 700; }
+.internal-state .state-action { color: #3498db; font-weight: 700; }
+
+/* ===== PLACEHOLDER TABS ===== */
+.placeholder-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #555;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  text-align: center;
+  padding: 1rem;
+  background: #0f3460;
+  border-top: 2px solid #d4a85344;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  header h1 { font-size: 1.3rem; }
+  .room { width: 120px; height: 90px; }
+  .room-connector { width: 24px; }
+  .btn { padding: 0.5rem 0.8rem; font-size: 0.8rem; min-width: 55px; }
+  .stat-box { min-width: 70px; padding: 0.4rem 0.6rem; }
+  .stat-value { font-size: 1.1rem; }
+  .tab-btn { font-size: 0.72rem; padding: 0.5rem 0.3rem; }
+  .agent-select-row { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 360px) {
+  .room { width: 100px; height: 80px; font-size: 0.85rem; }
+  .room .agent-icon { font-size: 1.4rem; top: -14px; }
+  main { padding: 0.5rem; }
+  .card { padding: 0.75rem; }
+}
+.instructions { margin: 0.75rem 0 1rem; background: rgba(212, 168, 83, 0.08); border: 1px solid rgba(212, 168, 83, 0.3); border-radius: 8px; padding: 0.5rem 0.75rem; }
+.instructions summary { cursor: pointer; color: #d4a853; font-weight: 600; font-size: 0.9rem; }
+.instructions-content { margin-top: 0.5rem; font-size: 0.85rem; color: #a0a0b0; line-height: 1.6; }
+.instructions-content p { margin-bottom: 0.4rem; }
+.instructions-content strong { color: #e0e0e0; }
+.scoring-box { margin: 0.75rem 0; padding: 0.75rem 1rem; background: rgba(46, 204, 113, 0.08); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 8px; font-size: 0.85rem; }
+.scoring-box ul { margin: 0.4rem 0 0 1.2rem; }
+.scoring-box li { margin-bottom: 0.3rem; color: #c0c0c0; }
+.score-plus { color: #2ecc71; font-weight: 600; }
+.score-bonus { color: #d4a853; font-weight: 600; }
+.rule-table select { color: #e0e0e0; background: #1a1a2e; border: 1px solid #d4a853; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem; }
+</style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EYL7B293KM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-EYL7B293KM');
+</script>
+<!-- Matomo (self-hosted, cookieless) kvk-matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  _paq.push(['disableCookies']);
+  _paq.push(['setDoNotTrack', true]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u = 'https://kiranvk.me/analytics/';
+    _paq.push(['setTrackerUrl', u + 'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+    g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+  })();
+</script>
+<noscript><img referrerpolicy="no-referrer-when-downgrade" src="https://kiranvk.me/analytics/matomo.php?idsite=1&amp;rec=1" style="border:0" alt="" /></noscript>
+<!-- /kvk-matomo -->
+</head>
+<body>
+<!-- ═══ wrap:v2-theme ═══ -->
+<!-- v2-theme.html — full UX takeover for deep-linked apps. Overrides the
+     app's own theme tokens (--bg, --text, fonts) with v2's paper aesthetic,
+     while preserving game logic and DOM. Uses CSS custom-property re-declare
+     so ANY selector using var(--bg) etc. now paints in paper tones.
+     Safe: reduced-motion respected, print-safe, mobile-safe. -->
+<style id="v2-theme-style">
+  :root {
+    /* --- v2 palette (paper + brick + ink) overrides whatever the app declared --- */
+    --bg:  #f5f0e6 !important;
+    --bg2: #ede4d0 !important;
+    --bg3: #e4d8bf !important;
+    --text:     #1a1614 !important;
+    --text-dim: #5a4f42 !important;
+    --line:     #d9cbb0 !important;
+    --accent:   #c14a2b !important;
+    --accent2:  #a83a1e !important;
+
+    /* Wumpus-specific cell tokens (override game.html's dark navy) */
+    --cell-unvisited: #ede4d0 !important;
+    --cell-visited:   #f5eeda !important;
+    --cell-current:   #fdf3d6 !important;
+    --flag-safe: #3a7d3a !important;
+    --flag-pit:  #c14a2b !important;
+    --flag-w:    #7c3aed !important;
+
+    /* fonts */
+    --font: 'Instrument Serif', Georgia, 'Times New Roman', serif !important;
+    --mono: 'JetBrains Mono', 'Courier New', monospace !important;
+  }
+
+  /* Belt-and-braces: some apps hardcode colors instead of using vars */
+  html, body {
+    background: #f5f0e6 !important;
+    color: #1a1614 !important;
+    font-family: 'Instrument Serif', Georgia, serif !important;
+  }
+  body * {
+    /* Only kill hard-coded dark-navy backgrounds; leave whites, warms, and canvas alone */
+  }
+
+  /* Common dark-theme culprits from the AI games */
+  header, .card, .world, pre.rules, section, article, aside, nav, main, footer,
+  input[type=text], input[type=password], input[type=number], textarea, select {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+    border-color: var(--line) !important;
+  }
+  header {
+    background: linear-gradient(180deg, #f5f0e6, #ede4d0) !important;
+    border-bottom: 1px solid var(--accent) !important;
+  }
+  .card {
+    background: #fdf9ef !important;
+    border: 1px solid var(--line) !important;
+  }
+  pre, code, kbd, samp, .mono {
+    font-family: var(--mono) !important;
+    background: #fdf9ef !important;
+    color: #2a2320 !important;
+  }
+  button, .btn {
+    background: var(--bg2) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--accent) !important;
+    font-family: var(--font) !important;
+  }
+  button.primary, button.accent {
+    background: var(--accent) !important;
+    color: #fdf9ef !important;
+    border-color: var(--accent2) !important;
+    font-weight: 700 !important;
+  }
+  button:hover { background: var(--accent) !important; color: #fdf9ef !important; }
+  .badge, .tag, .chip {
+    background: rgba(193, 74, 43, 0.08) !important;
+    color: var(--accent) !important;
+    border: 1px solid rgba(193, 74, 43, 0.3) !important;
+  }
+  a { color: var(--accent) !important; }
+  a:hover { color: var(--accent2) !important; }
+
+  /* Wumpus grid — pixel-precise tile overrides (bypass --cell-* vars entirely) */
+  #board .cell { background: #ede4d0 !important; color: #1a1614 !important; border-color: #d9cbb0 !important; }
+  #board .cell.visited { background: #f5eeda !important; }
+  #board .cell.current { background: #fdf3d6 !important; border-color: #c14a2b !important; }
+  #board .cell .coord { color: #5a4f42 !important; }
+  #board .cell .p span { background: rgba(193,74,43,0.10) !important; color: #a83a1e !important; }
+  #board.board, #board { background: #d9cbb0 !important; }
+  .world { background: #f5f0e6 !important; border-color: #d9cbb0 !important; }
+  .world b { color: #c14a2b !important; }
+
+  /* Preserve canvas/svg/img rendering — don't touch game-content pixels */
+  canvas, svg, img, video { background: transparent !important; }
+
+  /* Type scale nudge toward v2 */
+  h1, h2, h3 { font-family: 'Instrument Serif', Georgia, serif !important; font-weight: 400 !important; letter-spacing: -0.01em !important; }
+  h1 { color: var(--text) !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001s !important; transition-duration: 0.001s !important; }
+  }
+</style>
+
+
+
+
+
+<!-- ═══ wrap:v2-bar ═══ -->
+<!-- v2-bar.html — slim v2-styled top bar injected into deep-linked game apps
+     so they feel continuous with the new site. Loads its own font/color
+     tokens so it works even on pages with no shared CSS. -->
+<style id="v2-bar-style">
+  :root { --v2b-ink:#1a1614; --v2b-paper:#f5f0e6; --v2b-accent:#c14a2b; --v2b-line:#e4dbcb; }
+  #v2-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    display: flex; align-items: center; gap: 14px; padding: 10px 18px;
+    background: rgba(245,240,230,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--v2b-line);
+    font-family: 'Instrument Serif', Georgia, serif; color: var(--v2b-ink);
+    font-size: 16px; letter-spacing: -.005em;
+  }
+  #v2-bar .wm { font-weight: 400; font-size: 18px; text-decoration: none; color: var(--v2b-ink); }
+  #v2-bar .wm span { color: var(--v2b-accent); }
+  #v2-bar .sep { color: #b6a892; margin: 0 2px; }
+  #v2-bar a.up { text-decoration: none; color: var(--v2b-ink); border-bottom: 1px dashed transparent; padding: 2px 0; transition: border-color .15s; }
+  #v2-bar a.up:hover { border-bottom-color: var(--v2b-accent); }
+  #v2-bar .spacer { flex: 1; }
+  #v2-bar .search-link { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--v2b-ink); text-decoration: none; padding: 4px 10px; border: 1px solid var(--v2b-line); border-radius: 999px; }
+  #v2-bar .search-link:hover { border-color: var(--v2b-accent); color: var(--v2b-accent); }
+  body { padding-top: 46px !important; }
+  @media (max-width: 500px) { #v2-bar { font-size: 14px; padding: 8px 12px; } #v2-bar .search-link { display: none; } }
+  @media print { #v2-bar { display: none; } body { padding-top: 0 !important; } }
+</style>
+<div id="v2-bar" role="banner">
+  <a class="wm" href="/">kvk<span>.</span></a>
+  <span class="sep">/</span>
+  <a class="up" href="/games">Games</a>
+  <div class="spacer"></div>
+  <a class="search-link" href="/search">Search ⌘K</a>
+</div>
+
+
+<!-- ===== HEADER ===== -->
+<header>
+  <h1>🤖 Vacuum World Agent Simulator</h1>
+  <p>PECST522 — Artificial Intelligence</p>
+</header>
+
+<!-- ===== TAB BAR ===== -->
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="0">Manual</button>
+  <button class="tab-btn" data-tab="1">Agents</button>
+  <button class="tab-btn" data-tab="2">Rules</button>
+  <button class="tab-btn" data-tab="3">Environment</button>
+  <button class="tab-btn" data-tab="4">State Space</button>
+  <button class="tab-btn" data-tab="5">Compare</button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+  <!-- TAB 0: MANUAL CONTROL -->
+  <div class="tab-panel active" id="panel-0">
+    <div class="card">
+      <h2>🎮 Mode 1: Manual Control — "Be the Agent"</h2>
+      <details class="instructions">
+        <summary>📖 How to Play</summary>
+        <div class="instructions-content">
+          <p><strong>Objective:</strong> You ARE the vacuum agent. Clean both rooms to maximize your score.</p>
+          <p><strong>Rules:</strong> Use Left/Right to move between rooms, Suck to clean a dirty room. Each action costs 1 point, but you earn +1 for each clean room every step. Click a room to toggle its dirt status. NoOp skips your turn.</p>
+          <p><strong>AI Concept:</strong> This is the agent-environment interaction loop. You experience what a Simple Reflex Agent must decide every step — observe the percept (location + dirt status), then choose an action.</p>
+        </div>
+      </details>
+      <p style="color:#8888aa; font-size:0.85rem; margin-bottom:0.75rem;">
+        You are the vacuum agent. Click rooms to toggle dirt, then use buttons to act.
+        Score: <strong>+1</strong> per clean square per step, <strong>−1</strong> per action cost.
+      </p>
+
+      <!-- Vacuum World Visual -->
+      <div class="vacuum-world" id="manual-world">
+        <div class="room dirty agent-here" id="manual-room-A" onclick="toggleDirt('A')">
+          <span class="agent-icon">🤖</span>
+          <span class="room-label">Room A</span>
+          <span class="room-status">Dirty</span>
+        </div>
+        <div class="room-connector"></div>
+        <div class="room dirty" id="manual-room-B" onclick="toggleDirt('B')">
+          <span class="room-label">Room B</span>
+          <span class="room-status">Dirty</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="btn-row">
+        <button class="btn" onclick="manualAction('Left')" id="btn-left">← Left</button>
+        <button class="btn" onclick="manualAction('Right')" id="btn-right">Right →</button>
+        <button class="btn primary" onclick="manualAction('Suck')">🧹 Suck</button>
+        <button class="btn" onclick="manualAction('NoOp')" style="border-color:#8888aa;color:#8888aa;">⏸ NoOp</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Score</div>
+          <div class="stat-value" id="manual-score">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Steps</div>
+          <div class="stat-value" id="manual-steps">0</div>
+        </div>
+      </div>
+
+      <div class="scoring-box" style="margin-top:0.5rem;">
+        <strong>📊 How Points Work:</strong> Each step → +1 for every clean room, −1 for each action (except NoOp). Clean both rooms to maximize!
+      </div>
+
+      <!-- Reset -->
+      <div class="btn-row">
+        <button class="btn danger" onclick="manualReset()">↺ Reset</button>
+      </div>
+
+      <!-- Action Log -->
+      <h3>📜 Action Log</h3>
+      <div class="log-area" id="manual-log">
+        <div class="log-entry" style="color:#555;">Actions will appear here...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 1: AGENT SELECTOR -->
+  <div class="tab-panel" id="panel-1">
+    <div class="card">
+      <h2>🧠 Mode 2: Agent Selector — "Watch Different Agents"</h2>
+      <details class="instructions">
+        <summary>📖 How to Play</summary>
+        <div class="instructions-content">
+          <p><strong>Objective:</strong> Observe how 4 different agent architectures solve the same cleaning task.</p>
+          <p><strong>Rules:</strong> Select an agent type from the dropdown, then click Step (one action) or Run (continuous). Watch the side panel — it shows each agent's internal reasoning in real-time.</p>
+          <p><strong>AI Concept:</strong> Compares the 4 agent types from AIMA Ch.2: Simple Reflex (condition→action rules), Model-Based (internal state tracking), Goal-Based (plans toward all-clean), and Random. Notice how Simple Reflex works perfectly here because the environment is fully observable.</p>
+        </div>
+      </details>
+      <p style="color:#8888aa; font-size:0.85rem; margin-bottom:0.75rem;">
+        Select an agent architecture and watch it solve the Vacuum World autonomously.
+      </p>
+
+      <!-- Agent Selector -->
+      <div class="agent-select-row">
+        <label for="agent-type">Agent Type:</label>
+        <select id="agent-type" onchange="onAgentChange()">
+          <option value="simple-reflex">Simple Reflex</option>
+          <option value="model-based">Model-Based Reflex</option>
+          <option value="goal-based">Goal-Based</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
+
+      <!-- Vacuum World Visual -->
+      <div class="vacuum-world" id="agent-world">
+        <div class="room dirty agent-here" id="agent-room-A">
+          <span class="agent-icon">🤖</span>
+          <span class="room-label">Room A</span>
+          <span class="room-status">Dirty</span>
+        </div>
+        <div class="room-connector"></div>
+        <div class="room dirty" id="agent-room-B">
+          <span class="room-label">Room B</span>
+          <span class="room-status">Dirty</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="btn-row">
+        <button class="btn" onclick="agentStep()" id="btn-step">⏭ Step</button>
+        <button class="btn success" onclick="agentRun()" id="btn-run">▶ Run</button>
+        <button class="btn" onclick="agentPause()" id="btn-pause" disabled>⏸ Pause</button>
+        <button class="btn danger" onclick="agentReset()" id="btn-agent-reset">↺ Reset</button>
+      </div>
+
+      <!-- Speed -->
+      <div class="speed-row">
+        <label>Speed:</label>
+        <span style="font-size:0.75rem;color:#666;">Fast</span>
+        <input type="range" id="speed-slider" min="50" max="1000" value="500" step="50" oninput="onSpeedChange()">
+        <span style="font-size:0.75rem;color:#666;">Slow</span>
+        <span class="speed-val" id="speed-val">500ms</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Score</div>
+          <div class="stat-value" id="agent-score">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Steps</div>
+          <div class="stat-value" id="agent-steps">0</div>
+        </div>
+      </div>
+
+      <!-- Internal State Panel -->
+      <h3>🔍 Agent Internal State</h3>
+      <div class="internal-state" id="agent-internal">
+        <div class="state-line">
+          <span class="state-key">Select an agent and press Step or Run to begin.</span>
+        </div>
+      </div>
+
+      <div class="scoring-box" style="margin-top:0.5rem; font-size:0.8rem;">
+        📊 Score: +1 per clean room per step. Watch how each agent's strategy affects total score.
+      </div>
+
+      <!-- Action Log -->
+      <h3 style="margin-top:0.75rem;">📜 Action Log</h3>
+      <div class="log-area" id="agent-log">
+        <div class="log-entry" style="color:#555;">Agent actions will appear here...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: RULES (placeholder) -->
+  <div class="tab-panel" id="panel-2">
+    <div class="card">
+<h2>🧠 Mode 3: Rule Editor — Program Your Agent</h2>
+<details class="instructions">
+  <summary>📖 How to Play</summary>
+  <div class="instructions-content">
+    <p><strong>Objective:</strong> Design your own condition-action rule table and see if your agent can clean both rooms optimally.</p>
+    <p><strong>Rules:</strong> For each possible percept (location + dirt status), choose an action from the dropdown. Then click "Run My Agent" to watch it execute for 20 steps. Try to reach 36+ points!</p>
+    <p><strong>AI Concept:</strong> This is AIMA Table 2.3 — the complete agent function as a lookup table. There are only 4 possible percepts in this environment, so the entire agent program fits in 4 rules. Can you figure out the optimal mapping? Hint: think about what the agent should do when there's nothing to clean in its current room.</p>
+  </div>
+</details>
+
+  <div class="info-box">
+    <strong>🏆 Challenge:</strong> Can you find the perfect rule set?
+    <strong>Target: 36+ points!</strong><br>
+    Initial state: Both rooms are <em>dirty</em>. You have <strong>20 steps</strong>.
+    Design one action for each possible percept.
+  </div>
+
+  <div class="scoring-box">
+    <strong>📊 Scoring Rules:</strong>
+    <ul>
+      <li><span class="score-plus">+1 point</span> for each clean room at the end of every step (max +2/step)</li>
+      <li><span class="score-bonus">+10 bonus</span> if both rooms are clean when the 20 steps finish</li>
+      <li>Maximum possible: 20 steps × 2 rooms + 10 bonus = <strong>50 points</strong></li>
+      <li>Target to beat: <strong>36+ points</strong> (excellent), <strong>40 = perfect</strong></li>
+    </ul>
+  </div>
+
+  <div class="mode3-layout">
+    <div class="mode3-controls">
+      <h3>Your Rule Table</h3>
+      <table class="rule-table">
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Status</th>
+            <th>→ Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="loc-badge loc-a">A</span></td>
+            <td><span class="status-badge clean">Clean</span></td>
+            <td>
+              <select id="rule-a-clean" class="rule-select">
+                <option value="Left">← Left</option>
+                <option value="Right" selected>→ Right</option>
+                <option value="Suck">⬇ Suck</option>
+                <option value="NoOp">• NoOp</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="loc-badge loc-a">A</span></td>
+            <td><span class="status-badge dirty">Dirty</span></td>
+            <td>
+              <select id="rule-a-dirty" class="rule-select">
+                <option value="Left">← Left</option>
+                <option value="Right">→ Right</option>
+                <option value="Suck" selected>⬇ Suck</option>
+                <option value="NoOp">• NoOp</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="loc-badge loc-b">B</span></td>
+            <td><span class="status-badge clean">Clean</span></td>
+            <td>
+              <select id="rule-b-clean" class="rule-select">
+                <option value="Left" selected>← Left</option>
+                <option value="Right">→ Right</option>
+                <option value="Suck">⬇ Suck</option>
+                <option value="NoOp">• NoOp</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="loc-badge loc-b">B</span></td>
+            <td><span class="status-badge dirty">Dirty</span></td>
+            <td>
+              <select id="rule-b-dirty" class="rule-select">
+                <option value="Left">← Left</option>
+                <option value="Right">→ Right</option>
+                <option value="Suck" selected>⬇ Suck</option>
+                <option value="NoOp">• NoOp</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="mode3-buttons">
+        <button class="btn btn-primary" id="run-custom-btn">▶ Run My Agent</button>
+        <button class="btn" id="reset-mode3-btn">↺ Reset</button>
+      </div>
+
+      <div class="score-display" id="mode3-score">Score: — / 40</div>
+    </div>
+
+    <div class="mode3-visual">
+      <div class="rooms-display" id="mode3-rooms">
+        <div class="room dirty" id="mode3-room-a">
+          <span class="room-label">A</span>
+          <div class="agent" id="mode3-agent" style="display:none">🤖</div>
+        </div>
+        <div class="room dirty" id="mode3-room-b">
+          <span class="room-label">B</span>
+        </div>
+      </div>
+      <div class="log-area" id="mode3-log">Configure your rules above, then press <strong>Run My Agent</strong>...</div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ENVIRONMENT (placeholder) -->
+  <div class="tab-panel" id="panel-3">
+    <div class="card">
+<h2>🔬 Mode 4: Environment Properties Lab</h2>
+<details class="instructions">
+  <summary>📖 How to Play</summary>
+  <div class="instructions-content">
+    <p><strong>Objective:</strong> See how changing environment properties breaks simple agents and demands more sophisticated architectures.</p>
+    <p><strong>Rules:</strong> Toggle the environment switches (Partially Observable, Stochastic, Dynamic, Larger World), select an agent type, then click "Run Experiment" to observe behavior over 30 steps.</p>
+    <p><strong>AI Concept:</strong> The 6 environment dimensions from AIMA Ch.2 determine agent design complexity. Partially Observable → Simple Reflex fails (can't see other room); Stochastic → plans may fail; Dynamic → must re-plan continuously. This is why we need Model-Based and Goal-Based agents.</p>
+  </div>
+</details>
+
+  <div class="info-box">
+    Explore how <strong>environment properties</strong> affect agent performance.
+    Toggle properties, select an agent, and run experiments!
+  </div>
+
+  <div class="mode4-layout">
+    <div class="mode4-controls">
+      <h3>Environment Properties</h3>
+      <div class="toggle-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-partial" class="toggle-check">
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">
+            <strong>Partially Observable</strong>
+            <small>Agent can only see its own room</small>
+          </span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-stochastic" class="toggle-check">
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">
+            <strong>Stochastic</strong>
+            <small>Suck action has 20% chance of failure</small>
+          </span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-dynamic" class="toggle-check">
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">
+            <strong>Dynamic</strong>
+            <small>Dirt reappears randomly every 3-5 steps</small>
+          </span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-larger" class="toggle-check">
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">
+            <strong>Larger World</strong>
+            <small>Expand to 4 rooms (A-B-C-D)</small>
+          </span>
+        </label>
+      </div>
+
+      <h3>Agent</h3>
+      <select id="mode4-agent-select" class="agent-select">
+        <option value="simpleReflex">Simple Reflex Agent</option>
+        <option value="modelBased">Model-Based Agent</option>
+        <option value="goalBased">Goal-Based Agent</option>
+        <option value="random">Random Agent</option>
+      </select>
+
+      <div class="mode4-buttons">
+        <button class="btn btn-primary" id="run-experiment-btn">▶ Run Experiment</button>
+        <button class="btn" id="reset-mode4-btn">↺ Reset</button>
+      </div>
+
+      <div class="score-display" id="mode4-score">Score: —</div>
+    </div>
+
+    <div class="mode4-visual">
+      <div class="rooms-display" id="mode4-rooms">
+        <div class="room dirty" id="mode4-room-a"><span class="room-label">A</span></div>
+        <div class="room dirty" id="mode4-room-b"><span class="room-label">B</span></div>
+      </div>
+      <div class="log-area" id="mode4-log">Toggle properties, select an agent, and press <strong>Run Experiment</strong>...</div>
+    </div>
+  </div>
+
+  <div class="info-panel" id="mode4-info">
+    <h3>📖 How Properties Affect Agents</h3>
+    <div class="info-cards">
+      <div class="info-card">
+        <h4>👁 Partial Observability</h4>
+        <p>When the agent can't see the other room, <strong>Simple Reflex fails!</strong>
+        It has no memory — it doesn't know if the other room is still dirty.
+        A <strong>Model-Based</strong> agent maintains an internal model of the world
+        and can track what it hasn't observed.</p>
+      </div>
+      <div class="info-card">
+        <h4>🎲 Stochasticity</h4>
+        <p>Actions can have unintended outcomes. A <strong>Goal-Based</strong> agent's
+        plan may fail mid-execution — it must <em>re-sense and re-plan</em> after
+        each action. Simple reflex agents are somewhat robust since they react
+        to each step independently.</p>
+      </div>
+      <div class="info-card">
+        <h4>🌊 Dynamic Environment</h4>
+        <p>The world changes <em>while the agent acts</em>. Dirt appears randomly!
+        The agent must <strong>re-plan continuously</strong> — a one-shot plan
+        is never enough. Model-Based and Goal-Based agents handle this best
+        by maintaining up-to-date world models.</p>
+      </div>
+      <div class="info-card">
+        <h4>🏠 Larger World</h4>
+        <p>More rooms = harder exploration problem. The agent must <strong>navigate</strong>
+        efficiently between rooms. Simple Reflex agents wander randomly;
+        Model-Based agents use their internal map to plan efficient paths.</p>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: STATE SPACE (placeholder) -->
+  <div class="tab-panel" id="panel-4">
+    <div class="card">
+<h2>🗺️ State Space Diagram</h2>
+<details class="instructions">
+  <summary>📖 How to Play</summary>
+  <div class="instructions-content">
+    <p><strong>Objective:</strong> Visualize the complete state space — every possible world state and the transitions between them.</p>
+    <p><strong>Rules:</strong> The diagram shows all 8 states (2 positions × 4 dirt combinations). Green arrows = Suck action, Blue arrows = Move (Left/Right). As modes 1-2 run, the current state highlights in gold.</p>
+    <p><strong>AI Concept:</strong> A well-defined problem has 5 components: Initial State, Actions, Transition Model, Goal Test, Path Cost. This diagram IS the transition model. The 8 states = the entire state space of the 2-room vacuum world (AIMA Figure 3.2).</p>
+  </div>
+</details>
+  <p class="mode-desc">All 8 possible states of the Vacuum World and transitions between them.</p>
+
+  <div class="info-box">
+    <strong>8 states</strong> = 2 agent positions (A or B) × 2² dirt configurations (each room Clean or Dirty)
+  </div>
+
+  <div class="info-box" style="margin-bottom:1rem;">
+    <strong>Reading the Diagram:</strong> Each box is a state: [Agent Position, Room A status, Room B status]. 
+    <span style="color:#27ae60">Green arrows</span> = Suck action (cleans current room).
+    <span style="color:#2980b9">Blue arrows</span> = Move (Left/Right).
+    The <span style="color:#d4a853">gold highlighted</span> node = current state during simulation.
+  </div>
+
+  <div class="state-space-container">
+    <svg id="stateSpaceSVG" viewBox="0 0 520 370" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#27ae60"/>
+        </marker>
+        <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#2980b9"/>
+        </marker>
+        <marker id="arrowGrey" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#95a5a6"/>
+        </marker>
+        <filter id="glowGold" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feFlood flood-color="#d4a853" flood-opacity="0.6" result="color"/>
+          <feComposite in="color" in2="blur" operator="in" result="glow"/>
+          <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Row labels -->
+      <text x="12" y="88" font-size="13" font-weight="bold" fill="#555">Agent A</text>
+      <text x="12" y="268" font-size="13" font-weight="bold" fill="#555">Agent B</text>
+      <!-- Edges and nodes rendered by JS -->
+      <g id="edgesLayer"></g>
+      <g id="nodesLayer"></g>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <span class="legend-item"><span class="legend-color" style="background:#27ae60"></span> Suck (clean room)</span>
+    <span class="legend-item"><span class="legend-color" style="background:#2980b9"></span> Move (Left/Right)</span>
+    <span class="legend-item"><span class="legend-color" style="background:#95a5a6"></span> NoOp (wall / already clean)</span>
+  </div>
+
+  <div id="stateAnnotation" class="info-box" style="margin-top:12px;">
+    Click a node to inspect it, or run Mode 1 / Mode 2 to see the current state highlighted live.
+  </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: COMPARE (placeholder) -->
+  <div class="tab-panel" id="panel-5">
+    <div class="card">
+<h2>📊 Performance Comparison</h2>
+<details class="instructions">
+  <summary>📖 How to Play</summary>
+  <div class="instructions-content">
+    <p><strong>Objective:</strong> Quantitatively compare all 4 agent types running in identical conditions.</p>
+    <p><strong>Rules:</strong> Click "Compare All Agents" to run each agent for 50 steps from the same starting state (both rooms dirty, agent in A). Results show scores, steps to goal, and whether each agent reached the goal.</p>
+    <p><strong>AI Concept:</strong> Agent performance measurement — the rationality of an agent depends on its performance measure, environment, and actuators (PEAS). Simple Reflex and Goal-Based both achieve the goal, but Goal-Based is more efficient. Random almost never reaches the goal optimally.</p>
+  </div>
+</details>
+  <p class="mode-desc">Run all 4 agents side-by-side and compare their scores and efficiency.</p>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+    <button class="btn btn-primary" onclick="runComparison()">▶ Compare All Agents</button>
+    <button class="btn" onclick="runComparison(true)">🔧 Run with Environment Mods</button>
+  </div>
+
+  <div id="compProgress" class="info-box" style="display:none;"></div>
+
+  <div id="compResults" style="display:none;">
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Score</th>
+          <th>Steps to Goal</th>
+          <th>Goal Reached?</th>
+        </tr>
+      </thead>
+      <tbody id="compTableBody"></tbody>
+    </table>
+
+    <h3 style="margin-top:20px;">Score Comparison</h3>
+    <div class="bar-chart" id="compBarChart"></div>
+
+    <div id="compAnimation" style="margin-top:20px;">
+      <h3>Run Replay</h3>
+      <div id="compReplayArea" style="display:flex; gap:16px; flex-wrap:wrap;"></div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  Built for S5 CSE students | NSSCE Palakkad
+</footer>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+// ============================================================
+// CORE GAME STATE
+// ============================================================
+let state = {
+  agentPos: 'A',
+  rooms: { A: 'dirty', B: 'dirty' },
+  score: 0,
+  steps: 0
+};
+
+// Agent mode state
+let agentState = {
+  running: false,
+  timer: null,
+  speed: 500,
+  type: 'simple-reflex',
+  // Model-Based internal state
+  model: { A: null, B: null },       // null = unknown, 'clean', 'dirty'
+  visited: { A: false, B: false },
+  // Goal-Based internal state
+  plan: [],
+  planIndex: 0
+};
+
+// Manual mode log
+let manualLog = [];
+// Agent mode log
+let agentLog = [];
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const idx = btn.getAttribute('data-tab');
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById('panel-' + idx).classList.add('active');
+    // Initialize mode on first switch
+    if (idx === '2' && typeof initMode3 === 'function') initMode3();
+    if (idx === '3' && typeof initMode4 === 'function') initMode4();
+    if (idx === '4' && typeof initMode5 === 'function') initMode5();
+    if (idx === '5' && typeof initMode6 === 'function') initMode6();
+  });
+});
+
+// ============================================================
+// MODE 1: MANUAL CONTROL
+// ============================================================
+function toggleDirt(room) {
+  state.rooms[room] = state.rooms[room] === 'dirty' ? 'clean' : 'dirty';
+  renderManual();
+}
+
+function manualAction(action) {
+  // Count clean squares before action (for scoring)
+  const cleanBefore = (state.rooms.A === 'clean' ? 1 : 0) + (state.rooms.B === 'clean' ? 1 : 0);
+
+  // Execute action
+  switch (action) {
+    case 'Left':
+      if (state.agentPos === 'B') state.agentPos = 'A';
+      break;
+    case 'Right':
+      if (state.agentPos === 'A') state.agentPos = 'B';
+      break;
+    case 'Suck':
+      if (state.rooms[state.agentPos] === 'dirty') {
+        state.rooms[state.agentPos] = 'clean';
+      }
+      break;
+    case 'NoOp':
+      break;
+  }
+
+  // Score: +1 per clean square, -1 action cost
+  const cleanAfter = (state.rooms.A === 'clean' ? 1 : 0) + (state.rooms.B === 'clean' ? 1 : 0);
+  state.score += cleanAfter - 1; // +1 per clean square minus 1 action cost
+  state.steps++;
+
+  // Log
+  const percept = `[${state.agentPos}, ${state.rooms[state.agentPos].charAt(0).toUpperCase() + state.rooms[state.agentPos].slice(1)}]`;
+  manualLog.unshift({ step: state.steps, action, percept });
+  if (manualLog.length > 10) manualLog.pop();
+
+  renderManual();
+  renderManualLog();
+}
+
+function manualReset() {
+  state = { agentPos: 'A', rooms: { A: 'dirty', B: 'dirty' }, score: 0, steps: 0 };
+  manualLog = [];
+  renderManual();
+  renderManualLog();
+}
+
+function renderManual() {
+  // Rooms
+  ['A', 'B'].forEach(room => {
+    const el = document.getElementById('manual-room-' + room);
+    el.className = 'room ' + state.rooms[room] + (state.agentPos === room ? ' agent-here' : '');
+    el.querySelector('.room-status').textContent = state.rooms[room].charAt(0).toUpperCase() + state.rooms[room].slice(1);
+    // Agent icon
+    let icon = el.querySelector('.agent-icon');
+    if (state.agentPos === room) {
+      if (!icon) {
+        icon = document.createElement('span');
+        icon.className = 'agent-icon';
+        icon.textContent = '🤖';
+        el.prepend(icon);
+      }
+    } else {
+      if (icon) icon.remove();
+    }
+  });
+
+  // Stats
+  document.getElementById('manual-score').textContent = state.score;
+  document.getElementById('manual-steps').textContent = state.steps;
+
+  // Disable directional buttons at edges
+  document.getElementById('btn-left').disabled = (state.agentPos === 'A');
+  document.getElementById('btn-right').disabled = (state.agentPos === 'B');
+}
+
+function renderManualLog() {
+  const logEl = document.getElementById('manual-log');
+  if (manualLog.length === 0) {
+    logEl.innerHTML = '<div class="log-entry" style="color:#555;">Actions will appear here...</div>';
+    return;
+  }
+  logEl.innerHTML = manualLog.map(e =>
+    `<div class="log-entry"><span class="step-num">[${e.step}]</span> <span class="percept">${e.percept}</span> → <span class="action">${e.action}</span></div>`
+  ).join('');
+}
+
+// ============================================================
+// MODE 2: AGENT SELECTOR
+// ============================================================
+
+// ---- Percept ----
+function getPercept() {
+  return [state.agentPos, state.rooms[state.agentPos]];
+}
+
+// ---- Simple Reflex Agent (AIMA) ----
+// Rule: if dirty → Suck; else if at A → Right; else if at B → Left
+function simpleReflexAgent() {
+  const [pos, status] = getPercept();
+  let action, reasoning;
+
+  if (status === 'dirty') {
+    action = 'Suck';
+    reasoning = `Percept: [${pos}, Dirty] → Rule: Current room is dirty → <span class="state-action">Suck</span>`;
+  } else if (pos === 'A') {
+    action = 'Right';
+    reasoning = `Percept: [A, Clean] → Rule: At A and clean → <span class="state-action">Right</span>`;
+  } else {
+    action = 'Left';
+    reasoning = `Percept: [B, Clean] → Rule: At B and clean → <span class="state-action">Left</span>`;
+  }
+
+  return { action, reasoning };
+}
+
+// ---- Model-Based Reflex Agent (AIMA) ----
+// Keeps internal model of world, updates on percept, visits dirty/unknown rooms
+function modelBasedAgent() {
+  const [pos, status] = getPercept();
+
+  // Update model with current percept
+  agentState.model[pos] = status;
+  agentState.visited[pos] = true;
+
+  // Update the other room's model if we've been there
+  // (Model-Based agents maintain belief about unobserved rooms)
+
+  let action, reasoning;
+  const otherRoom = pos === 'A' ? 'B' : 'A';
+
+  if (status === 'dirty') {
+    action = 'Suck';
+    reasoning = `<span class="state-key">Model:</span> <span class="state-val">{A: ${agentState.model.A || 'Unknown'}, B: ${agentState.model.B || 'Unknown'}}</span><br>` +
+                `<span class="state-key">Percept:</span> <span class="state-val">[${pos}, ${status.charAt(0).toUpperCase() + status.slice(1)}]</span><br>` +
+                `<span class="state-key">Rule:</span> Current room dirty → <span class="state-action">Suck</span>`;
+  } else if (agentState.model[otherRoom] === 'dirty' || agentState.model[otherRoom] === null) {
+    // Move to the other room (it's dirty or unknown)
+    action = otherRoom === 'A' ? 'Left' : 'Right';
+    reasoning = `<span class="state-key">Model:</span> <span class="state-val">{A: ${agentState.model.A || 'Unknown'}, B: ${agentState.model.B || 'Unknown'}}</span><br>` +
+                `<span class="state-key">Percept:</span> <span class="state-val">[${pos}, ${status.charAt(0).toUpperCase() + status.slice(1)}]</span><br>` +
+                `<span class="state-key">Rule:</span> Room ${otherRoom} is ${agentState.model[otherRoom] === null ? 'Unknown' : 'Dirty'} → <span class="state-action">${action}</span>`;
+  } else {
+    // Both rooms clean in model — stay
+    action = 'NoOp';
+    reasoning = `<span class="state-key">Model:</span> <span class="state-val">{A: Clean, B: Clean}</span><br>` +
+                `<span class="state-key">Percept:</span> <span class="state-val">[${pos}, Clean]</span><br>` +
+                `<span class="state-key">Rule:</span> All rooms clean in model → <span class="state-action">NoOp</span>`;
+  }
+
+  return { action, reasoning };
+}
+
+// ---- Goal-Based Agent (AIMA) ----
+// Computes shortest plan to make all rooms clean, then executes it
+function goalBasedAgent() {
+  const [pos, status] = getPercept();
+
+  // If plan is empty or we're at start, compute a plan
+  if (agentState.plan.length === 0 || agentState.planIndex >= agentState.plan.length) {
+    // Compute plan: BFS to find shortest action sequence to reach all-clean
+    agentState.plan = computeGoalPlan(pos, { ...state.rooms });
+    agentState.planIndex = 0;
+  }
+
+  let action;
+  if (agentState.planIndex < agentState.plan.length) {
+    action = agentState.plan[agentState.planIndex];
+    agentState.planIndex++;
+  } else {
+    action = 'NoOp';
+  }
+
+  const remaining = agentState.plan.slice(agentState.planIndex);
+  const reasoning = `<span class="state-key">Goal:</span> <span class="state-val">All rooms Clean</span><br>` +
+                    `<span class="state-key">Plan:</span> <span class="state-val">[${agentState.plan.join(', ')}]</span><br>` +
+                    `<span class="state-key">Step:</span> <span class="state-val">${agentState.planIndex}/${agentState.plan.length}</span> → <span class="state-action">${action}</span>` +
+                    (remaining.length > 0 ? `<br><span class="state-key">Remaining:</span> <span class="state-val">[${remaining.join(', ')}]</span>` : '');
+
+  return { action, reasoning };
+}
+
+// Compute shortest plan via BFS over (position, roomStates) 
+function computeGoalPlan(startPos, rooms) {
+  const actions = ['Left', 'Right', 'Suck', 'NoOp'];
+  // State: { pos, roomsA, roomsB }
+  const startState = { pos: startPos, rA: rooms.A, rB: rooms.B };
+  const key = (s) => `${s.pos}-${s.rA}-${s.rB}`;
+  const goal = (s) => s.rA === 'clean' && s.rB === 'clean';
+
+  if (goal(startState)) return ['NoOp'];
+
+  const queue = [{ state: startState, path: [] }];
+  const visited = new Set();
+  visited.add(key(startState));
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    for (const act of actions) {
+      let newPos = current.state.pos;
+      let newRA = current.state.rA;
+      let newRB = current.state.rB;
+
+      switch (act) {
+        case 'Left':
+          if (newPos === 'B') newPos = 'A';
+          else continue; // can't go left from A
+          break;
+        case 'Right':
+          if (newPos === 'A') newPos = 'B';
+          else continue; // can't go right from B
+          break;
+        case 'Suck':
+          if (newPos === 'A') newRA = 'clean';
+          else newRB = 'clean';
+          break;
+        case 'NoOp':
+          break;
+      }
+
+      const newState = { pos: newPos, rA: newRA, rB: newRB };
+      const k = key(newState);
+      if (visited.has(k)) continue;
+      visited.add(k);
+
+      const newPath = [...current.path, act];
+      if (goal(newState)) return newPath;
+      queue.push({ state: newState, path: newPath });
+    }
+  }
+  return ['NoOp']; // fallback
+}
+
+// ---- Random Agent ----
+function randomAgent() {
+  const actions = ['Left', 'Right', 'Suck', 'NoOp'];
+  const action = actions[Math.floor(Math.random() * actions.length)];
+  const reasoning = `<span class="state-key">Random</span> → <span class="state-action">${action}</span><br>` +
+                    `<span class="state-key">Percept:</span> <span class="state-val">[${getPercept().join(', ')}]</span>`;
+  return { action, reasoning };
+}
+
+// ---- Dispatch ----
+function getAgentAction() {
+  switch (agentState.type) {
+    case 'simple-reflex': return simpleReflexAgent();
+    case 'model-based': return modelBasedAgent();
+    case 'goal-based': return goalBasedAgent();
+    case 'random': return randomAgent();
+    default: return simpleReflexAgent();
+  }
+}
+
+// ---- Execute one step ----
+function agentStep() {
+  const { action, reasoning } = getAgentAction();
+
+  // Execute action
+  switch (action) {
+    case 'Left':
+      if (state.agentPos === 'B') state.agentPos = 'A';
+      break;
+    case 'Right':
+      if (state.agentPos === 'A') state.agentPos = 'B';
+      break;
+    case 'Suck':
+      if (state.rooms[state.agentPos] === 'dirty') {
+        state.rooms[state.agentPos] = 'clean';
+      }
+      break;
+    case 'NoOp':
+      break;
+  }
+
+  // Score
+  const cleanCount = (state.rooms.A === 'clean' ? 1 : 0) + (state.rooms.B === 'clean' ? 1 : 0);
+  state.score += cleanCount - 1;
+  state.steps++;
+
+  // Log
+  const percept = `[${state.agentPos}, ${state.rooms[state.agentPos].charAt(0).toUpperCase() + state.rooms[state.agentPos].slice(1)}]`;
+  agentLog.unshift({ step: state.steps, action, percept });
+  if (agentLog.length > 10) agentLog.pop();
+
+  // Render
+  renderAgentWorld();
+  renderAgentInternal(reasoning);
+  renderAgentLog();
+
+  // Check if done (both clean)
+  if (state.rooms.A === 'clean' && state.rooms.B === 'clean') {
+    agentPause();
+  }
+}
+
+// ---- Run / Pause / Reset ----
+function agentRun() {
+  if (agentState.running) return;
+  agentState.running = true;
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-step').disabled = true;
+  agentState.timer = setInterval(() => {
+    agentStep();
+    if (state.rooms.A === 'clean' && state.rooms.B === 'clean') {
+      agentPause();
+    }
+  }, agentState.speed);
+}
+
+function agentPause() {
+  agentState.running = false;
+  if (agentState.timer) clearInterval(agentState.timer);
+  agentState.timer = null;
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-step').disabled = false;
+}
+
+function agentReset() {
+  agentPause();
+  state = { agentPos: 'A', rooms: { A: 'dirty', B: 'dirty' }, score: 0, steps: 0 };
+  agentState.model = { A: null, B: null };
+  agentState.visited = { A: false, B: false };
+  agentState.plan = [];
+  agentState.planIndex = 0;
+  agentLog = [];
+  renderAgentWorld();
+  renderAgentInternal('<span class="state-key">Reset. Select an agent and press Step or Run to begin.</span>');
+  renderAgentLog();
+}
+
+function onAgentChange() {
+  agentState.type = document.getElementById('agent-type').value;
+  // Reset agent-specific state
+  agentState.model = { A: null, B: null };
+  agentState.visited = { A: false, B: false };
+  agentState.plan = [];
+  agentState.planIndex = 0;
+  agentReset();
+}
+
+function onSpeedChange() {
+  const val = document.getElementById('speed-slider').value;
+  agentState.speed = parseInt(val);
+  document.getElementById('speed-val').textContent = val + 'ms';
+  // If running, restart interval with new speed
+  if (agentState.running) {
+    clearInterval(agentState.timer);
+    agentState.timer = setInterval(() => {
+      agentStep();
+      if (state.rooms.A === 'clean' && state.rooms.B === 'clean') {
+        agentPause();
+      }
+    }, agentState.speed);
+  }
+}
+
+// ---- Render Agent World ----
+function renderAgentWorld() {
+  ['A', 'B'].forEach(room => {
+    const el = document.getElementById('agent-room-' + room);
+    el.className = 'room ' + state.rooms[room] + (state.agentPos === room ? ' agent-here' : '');
+    el.querySelector('.room-status').textContent = state.rooms[room].charAt(0).toUpperCase() + state.rooms[room].slice(1);
+    let icon = el.querySelector('.agent-icon');
+    if (state.agentPos === room) {
+      if (!icon) {
+        icon = document.createElement('span');
+        icon.className = 'agent-icon';
+        icon.textContent = '🤖';
+        el.prepend(icon);
+      }
+    } else {
+      if (icon) icon.remove();
+    }
+  });
+
+  document.getElementById('agent-score').textContent = state.score;
+  document.getElementById('agent-steps').textContent = state.steps;
+}
+
+function renderAgentInternal(html) {
+  document.getElementById('agent-internal').innerHTML =
+    `<div class="state-line">${html}</div>`;
+}
+
+function renderAgentLog() {
+  const logEl = document.getElementById('agent-log');
+  if (agentLog.length === 0) {
+    logEl.innerHTML = '<div class="log-entry" style="color:#555;">Agent actions will appear here...</div>';
+    return;
+  }
+  logEl.innerHTML = agentLog.map(e =>
+    `<div class="log-entry"><span class="step-num">[${e.step}]</span> <span class="percept">${e.percept}</span> → <span class="action">${e.action}</span></div>`
+  ).join('');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+renderManual();
+renderManualLog();
+
+// ===== MODE 3 & 4 (Part B) =====
+// VACUUM WORLD AGENT SIMULATOR — PART B: Modes 3 & 4
+// Requires part-a.js (shared state helpers, agent functions, CSS classes)
+
+// ===== MODE 3: RULE EDITOR =====
+// HTML content for mode 3 tab panel:
+
+
+// ---------- Mode 3 CSS (injected once) ----------
+const mode3CSS = document.createElement('style');
+mode3CSS.textContent = `
+  .mode3-layout {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .mode3-controls { flex: 0 0 320px; }
+  .mode3-visual { flex: 1 1 300px; min-width: 280px; }
+
+  .rule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.95rem;
+  }
+  .rule-table th {
+    background: #2d3748;
+    color: #fff;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .rule-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+  }
+  .rule-table tr:hover { background: #f7fafc; }
+
+  .rule-select {
+    padding: 5px 8px;
+    border: 2px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .rule-select:focus { border-color: #4299e1; outline: none; }
+
+  .loc-badge {
+    display: inline-block;
+    width: 24px; height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #fff;
+  }
+  .loc-a { background: #4299e1; }
+  .loc-b { background: #ed8936; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .status-badge.clean { background: #c6f6d5; color: #276749; }
+  .status-badge.dirty { background: #feebc8; color: #975a16; }
+
+  .mode3-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  #mode3-rooms {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  #mode3-rooms .room {
+    width: 110px;
+    height: 110px;
+    font-size: 1rem;
+    transition: background-color 0.3s, transform 0.3s;
+  }
+  #mode3-rooms .room .agent {
+    font-size: 2rem;
+    transition: opacity 0.3s;
+  }
+
+  .log-entry.final {
+    font-weight: 700;
+    border-top: 2px solid #4299e1;
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+
+  @media (max-width: 700px) {
+    .mode3-layout { flex-direction: column; }
+    .mode3-controls { flex: 1 1 auto; }
+  }
+`;
+document.head.appendChild(mode3CSS);
+
+// ---------- Mode 3 JavaScript ----------
+
+let mode3Running = false;
+let mode3TimeoutId = null;
+
+function initMode3() {
+  const runBtn = document.getElementById('run-custom-btn');
+  const resetBtn = document.getElementById('reset-mode3-btn');
+
+  if (!runBtn || !resetBtn) return;
+
+  runBtn.addEventListener('click', () => {
+    if (!mode3Running) runCustomAgent();
+  });
+
+  resetBtn.addEventListener('click', resetMode3);
+}
+
+function resetMode3() {
+  // Stop any running simulation
+  mode3Running = false;
+  if (mode3TimeoutId) {
+    clearTimeout(mode3TimeoutId);
+    mode3TimeoutId = null;
+  }
+
+  // Reset dropdowns to defaults
+  document.getElementById('rule-a-clean').value = 'Right';
+  document.getElementById('rule-a-dirty').value = 'Suck';
+  document.getElementById('rule-b-clean').value = 'Left';
+  document.getElementById('rule-b-dirty').value = 'Suck';
+
+  // Reset visual
+  const roomA = document.getElementById('mode3-room-a');
+  const roomB = document.getElementById('mode3-room-b');
+  const agent = document.getElementById('mode3-agent');
+
+  roomA.className = 'room dirty';
+  roomB.className = 'room dirty';
+  agent.style.display = 'none';
+  roomA.appendChild(agent);
+
+  // Reset outputs
+  document.getElementById('mode3-score').textContent = 'Score: — / 40';
+  document.getElementById('mode3-log').innerHTML =
+    'Configure your rules above, then press <strong>Run My Agent</strong>...';
+  document.getElementById('run-custom-btn').disabled = false;
+}
+
+function runCustomAgent() {
+  // Read rules from dropdowns
+  const rules = {
+    'A-Clean': document.getElementById('rule-a-clean').value,
+    'A-Dirty': document.getElementById('rule-a-dirty').value,
+    'B-Clean': document.getElementById('rule-b-clean').value,
+    'B-Dirty': document.getElementById('rule-b-dirty').value
+  };
+
+  // Initialize state — both rooms dirty, agent at A
+  const state = {
+    agentPos: 'A',
+    rooms: { A: 'dirty', B: 'dirty' },
+    score: 0,
+    steps: 0
+  };
+
+  const maxSteps = 20;
+
+  // UI elements
+  const logEl = document.getElementById('mode3-log');
+  const scoreEl = document.getElementById('mode3-score');
+  const roomAEl = document.getElementById('mode3-room-a');
+  const roomBEl = document.getElementById('mode3-room-b');
+  const agentEl = document.getElementById('mode3-agent');
+  const runBtn = document.getElementById('run-custom-btn');
+
+  // Reset visual
+  logEl.innerHTML = '';
+  roomAEl.className = 'room dirty';
+  roomBEl.className = 'room dirty';
+  agentEl.style.display = 'block';
+  roomAEl.appendChild(agentEl);
+
+  let step = 0;
+  mode3Running = true;
+  runBtn.disabled = true;
+
+  function tick() {
+    if (!mode3Running) return;
+
+    if (step >= maxSteps) {
+      // Simulation complete
+      mode3Running = false;
+      runBtn.disabled = false;
+
+      // Bonus: if all clean at end, +10
+      const allClean = state.rooms.A === 'clean' && state.rooms.B === 'clean';
+      if (allClean) state.score += 10;
+
+      scoreEl.textContent = `Score: ${state.score} / 40`;
+
+      let resultMsg = '';
+      if (state.score >= 40) {
+        resultMsg = '🏆 PERFECT SCORE! Your rules are optimal!';
+      } else if (state.score >= 36) {
+        resultMsg = '🏆 Excellent! You hit the target!';
+      } else if (state.score >= 28) {
+        resultMsg = '👍 Good effort! Try optimizing further.';
+      } else {
+        resultMsg = '📚 Keep experimenting — check when rooms are clean!';
+      }
+
+      logEl.innerHTML += `<div class="log-entry final">✅ Complete! Score: ${state.score}/40${allClean ? ' (+10 bonus)' : ''}<br>${resultMsg}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+      return;
+    }
+
+    step++;
+    state.steps = step;
+
+    // Get percept (location + current room status)
+    const percept = { location: state.agentPos, status: state.rooms[state.agentPos] };
+
+    // Look up action from rules
+    const key = `${percept.location}-${percept.status}`;
+    const action = rules[key] || 'NoOp';
+
+    // Apply action (uses shared function from part-a)
+    applyAction(state, action);
+
+    // Score: +1 for each clean room at end of step
+    const cleanCount =
+      (state.rooms.A === 'clean' ? 1 : 0) +
+      (state.rooms.B === 'clean' ? 1 : 0);
+    state.score += cleanCount;
+
+    // Update visual
+    roomAEl.className = `room ${state.rooms.A}`;
+    roomBEl.className = `room ${state.rooms.B}`;
+
+    // Move agent visual
+    if (state.agentPos === 'A') {
+      roomAEl.appendChild(agentEl);
+    } else {
+      roomBEl.appendChild(agentEl);
+    }
+    agentEl.style.display = 'block';
+
+    // Build log entry
+    const actionSymbols = { Left: '←', Right: '→', Suck: '⬇', NoOp: '•' };
+    const sym = actionSymbols[action] || action;
+    logEl.innerHTML += `<div class="log-entry"><strong>Step ${step}:</strong> ` +
+      `[${percept.location}, ${percept.status}] → <strong>${sym} ${action}</strong> | ` +
+      `A: ${state.rooms.A}, B: ${state.rooms.B} <span class="log-points">(+${cleanCount})</span></div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+
+    scoreEl.textContent = `Score: ${state.score} / 40`;
+
+    mode3TimeoutId = setTimeout(tick, 450);
+  }
+
+  tick();
+}
+
+
+// ===== MODE 4: ENVIRONMENT PROPERTIES LAB =====
+// HTML content for mode 4 tab panel:
+
+
+// ---------- Mode 4 CSS (injected once) ----------
+const mode4CSS = document.createElement('style');
+mode4CSS.textContent = `
+  .mode4-layout {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .mode4-controls { flex: 0 0 320px; }
+  .mode4-visual { flex: 1 1 300px; min-width: 280px; }
+
+  /* Toggle switches */
+  .toggle-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .toggle-label:hover { background: #f7fafc; border-color: #cbd5e0; }
+  .toggle-check { display: none; }
+  .toggle-switch {
+    position: relative;
+    width: 40px; height: 22px;
+    background: #cbd5e0;
+    border-radius: 11px;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-check:checked + .toggle-switch {
+    background: #4299e1;
+  }
+  .toggle-check:checked + .toggle-switch::after {
+    transform: translateX(18px);
+  }
+  .toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .toggle-text strong { font-size: 0.9rem; color: #2d3748; }
+  .toggle-text small { font-size: 0.78rem; color: #718096; }
+
+  .agent-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    margin: 8px 0;
+    background: #fff;
+    cursor: pointer;
+  }
+  .agent-select:focus { border-color: #4299e1; outline: none; }
+
+  .mode4-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  /* Room display adapts for 4 rooms */
+  #mode4-rooms {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  #mode4-rooms .room {
+    width: 90px;
+    height: 90px;
+    font-size: 0.9rem;
+    position: relative;
+    transition: background-color 0.3s, transform 0.2s;
+  }
+  #mode4-rooms .room .agent {
+    font-size: 1.8rem;
+  }
+  #mode4-rooms .room .unknown-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.8);
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  /* Info panel */
+  .info-panel {
+    margin-top: 24px;
+    padding: 16px;
+    background: #f7fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+  }
+  .info-panel h3 { margin: 0 0 12px; font-size: 1rem; }
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .info-card {
+    background: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .info-card h4 {
+    margin: 0 0 6px;
+    font-size: 0.9rem;
+    color: #2d3748;
+  }
+  .info-card p { margin: 0; color: #4a5568; }
+
+  .log-points {
+    color: #38a169;
+    font-weight: 600;
+  }
+
+  @media (max-width: 700px) {
+    .mode4-layout { flex-direction: column; }
+    .mode4-controls { flex: 1 1 auto; }
+    #mode4-rooms .room { width: 70px; height: 70px; }
+  }
+`;
+document.head.appendChild(mode4CSS);
+
+// ---------- Mode 4 JavaScript ----------
+
+let mode4Running = false;
+let mode4TimeoutId = null;
+
+function initMode4() {
+  const runBtn = document.getElementById('run-experiment-btn');
+  const resetBtn = document.getElementById('reset-mode4-btn');
+  const largerToggle = document.getElementById('toggle-larger');
+
+  if (!runBtn || !resetBtn) return;
+
+  runBtn.addEventListener('click', () => {
+    if (!mode4Running) runExperiment();
+  });
+
+  resetBtn.addEventListener('click', resetMode4);
+
+  // Update room display when "Larger World" toggle changes
+  largerToggle.addEventListener('change', () => {
+    if (!mode4Running) buildMode4Rooms();
+  });
+}
+
+function resetMode4() {
+  mode4Running = false;
+  if (mode4TimeoutId) {
+    clearTimeout(mode4TimeoutId);
+    mode4TimeoutId = null;
+  }
+
+  buildMode4Rooms();
+
+  document.getElementById('mode4-score').textContent = 'Score: —';
+  document.getElementById('mode4-log').innerHTML =
+    'Toggle properties, select an agent, and press <strong>Run Experiment</strong>...';
+  document.getElementById('run-experiment-btn').disabled = false;
+}
+
+function buildMode4Rooms() {
+  const container = document.getElementById('mode4-rooms');
+  const larger = document.getElementById('toggle-larger').checked;
+  const partial = document.getElementById('toggle-partial').checked;
+
+  const roomKeys = larger ? ['A', 'B', 'C', 'D'] : ['A', 'B'];
+
+  container.innerHTML = '';
+  roomKeys.forEach(key => {
+    const div = document.createElement('div');
+    div.className = 'room dirty';
+    div.id = `mode4-room-${key.toLowerCase()}`;
+    div.innerHTML = `<span class="room-label">${key}</span>`;
+    container.appendChild(div);
+  });
+}
+
+function runExperiment() {
+  // Read environment settings
+  const partiallyObservable = document.getElementById('toggle-partial').checked;
+  const stochastic = document.getElementById('toggle-stochastic').checked;
+  const dynamic = document.getElementById('toggle-dynamic').checked;
+  const largerWorld = document.getElementById('toggle-larger').checked;
+  const agentType = document.getElementById('mode4-agent-select').value;
+
+  // Build room set
+  const roomKeys = largerWorld ? ['A', 'B', 'C', 'D'] : ['A', 'B'];
+  const rooms = {};
+  roomKeys.forEach(k => { rooms[k] = 'dirty'; });
+
+  // Initialize state
+  const state = {
+    agentPos: 'A',
+    rooms: rooms,
+    score: 0,
+    steps: 0,
+    // Model-based agent's internal belief about each room
+    model: {},
+    // Which rooms the agent has visited (for partial observability display)
+    visited: { A: true },
+    // Dynamic environment: steps until next random dirt
+    dynamicCounter: dynamic ? (3 + Math.floor(Math.random() * 3)) : Infinity,
+    // Properties snapshot
+    props: { partiallyObservable, stochastic, dynamic, largerWorld }
+  };
+
+  // Initialize model
+  roomKeys.forEach(k => {
+    state.model[k] = (k === 'A') ? 'dirty' : 'unknown';
+  });
+
+  const maxSteps = 30;
+  const maxPossible = maxSteps * roomKeys.length;
+
+  // UI elements
+  const logEl = document.getElementById('mode4-log');
+  const scoreEl = document.getElementById('mode4-score');
+  const runBtn = document.getElementById('run-experiment-btn');
+
+  // Build room visuals
+  buildMode4Rooms();
+
+  logEl.innerHTML = '';
+  scoreEl.textContent = `Score: 0 / ${maxPossible}`;
+
+  // Place agent
+  const agentEl = document.createElement('div');
+  agentEl.className = 'agent';
+  agentEl.textContent = '🤖';
+  document.getElementById('mode4-room-a').appendChild(agentEl);
+
+  // Add unknown overlays if partially observable
+  if (partiallyObservable) {
+    roomKeys.forEach(k => {
+      if (k !== 'A') {
+        const roomEl = document.getElementById(`mode4-room-${k.toLowerCase()}`);
+        const overlay = document.createElement('div');
+        overlay.className = 'unknown-overlay';
+        overlay.textContent = '?';
+        roomEl.appendChild(overlay);
+      }
+    });
+  }
+
+  let step = 0;
+  mode4Running = true;
+  runBtn.disabled = true;
+
+  // Describe active properties in log
+  const activeProps = [];
+  if (partiallyObservable) activeProps.push('Partial Obs.');
+  if (stochastic) activeProps.push('Stochastic');
+  if (dynamic) activeProps.push('Dynamic');
+  if (largerWorld) activeProps.push('4 Rooms');
+  const agentNames = {
+    simpleReflex: 'Simple Reflex',
+    modelBased: 'Model-Based',
+    goalBased: 'Goal-Based',
+    random: 'Random'
+  };
+
+  logEl.innerHTML += `<div class="log-entry"><strong>Config:</strong> ${agentNames[agentType]} | ` +
+    (activeProps.length ? activeProps.join(', ') : 'Standard') +
+    ` | ${maxSteps} steps</div>`;
+
+  function getPerceptMode4(st) {
+    const loc = st.agentPos;
+    const status = st.rooms[loc];
+    // In partially observable mode, percept only has current room info
+    // (same as standard vacuum world percept)
+    return { location: loc, status: status };
+  }
+
+  function applyActionMode4(st, action) {
+    const pos = st.agentPos;
+    const allRooms = Object.keys(st.rooms);
+    const idx = allRooms.indexOf(pos);
+
+    switch (action) {
+      case 'Left':
+        if (idx > 0) st.agentPos = allRooms[idx - 1];
+        break;
+      case 'Right':
+        if (idx < allRooms.length - 1) st.agentPos = allRooms[idx + 1];
+        break;
+      case 'Suck':
+        if (st.rooms[pos] === 'dirty') {
+          if (stochastic && Math.random() < 0.2) {
+            // Suck failed! Room stays dirty
+            st._suckFailed = true;
+          } else {
+            st.rooms[pos] = 'clean';
+            st._suckFailed = false;
+          }
+        }
+        break;
+      case 'NoOp':
+        break;
+    }
+
+    // Update visited
+    st.visited[st.agentPos] = true;
+
+    // Update model (for model-based tracking)
+    st.model[st.agentPos] = st.rooms[st.agentPos];
+  }
+
+  function dynamicDirt(st) {
+    if (!st.props.dynamic) return false;
+    st.dynamicCounter--;
+    if (st.dynamicCounter <= 0) {
+      // Add dirt to a random room
+      const cleanRooms = Object.keys(st.rooms).filter(k => st.rooms[k] === 'clean');
+      if (cleanRooms.length > 0) {
+        const target = cleanRooms[Math.floor(Math.random() * cleanRooms.length)];
+        st.rooms[target] = 'dirty';
+        st.model[target] = 'unknown'; // model invalidated
+        st._newDirt = target;
+        st.dynamicCounter = 3 + Math.floor(Math.random() * 3);
+        return true;
+      }
+      st.dynamicCounter = 3 + Math.floor(Math.random() * 3);
+    }
+    return false;
+  }
+
+  function getAgentAction(st, agentKind) {
+    const percept = getPerceptMode4(st);
+
+    switch (agentKind) {
+      case 'simpleReflex': {
+        // Rules: if dirty → suck; if clean and at leftmost → right; if clean and at rightmost → left; else right
+        if (percept.status === 'dirty') return 'Suck';
+        const allRooms = Object.keys(st.rooms);
+        const idx = allRooms.indexOf(percept.location);
+        if (idx >= allRooms.length - 1) return 'Left';
+        return 'Right';
+      }
+
+      case 'modelBased': {
+        // Update model with current percept
+        st.model[percept.location] = percept.status;
+
+        // If current room dirty → suck
+        if (percept.status === 'dirty') return 'Suck';
+
+        // Check model for any known dirty or unknown rooms
+        const allRooms = Object.keys(st.rooms);
+        const currentIdx = allRooms.indexOf(percept.location);
+
+        // Find nearest unknown/dirty room in model
+        let targetDir = 'Right';
+        let foundUnknown = false;
+
+        // Search outward from current position
+        for (let dist = 1; dist < allRooms.length; dist++) {
+          // Check right
+          const rIdx = currentIdx + dist;
+          if (rIdx < allRooms.length) {
+            const rk = allRooms[rIdx];
+            if (st.model[rk] === 'unknown' || st.model[rk] === 'dirty') {
+              targetDir = 'Right';
+              foundUnknown = true;
+              break;
+            }
+          }
+          // Check left
+          const lIdx = currentIdx - dist;
+          if (lIdx >= 0) {
+            const lk = allRooms[lIdx];
+            if (st.model[lk] === 'unknown' || st.model[lk] === 'dirty') {
+              targetDir = 'Left';
+              foundUnknown = true;
+              break;
+            }
+          }
+        }
+
+        if (foundUnknown) return targetDir;
+
+        // All rooms known clean — just patrol
+        if (currentIdx >= allRooms.length - 1) return 'Left';
+        return 'Right';
+      }
+
+      case 'goalBased': {
+        // Goal: all rooms clean. Plan = go to dirty room, suck, repeat.
+        // Uses full state (goal-based can access world state in this sim)
+        if (percept.status === 'dirty') return 'Suck';
+
+        const allRooms = Object.keys(st.rooms);
+        const currentIdx = allRooms.indexOf(percept.location);
+
+        // Find nearest dirty room
+        let bestDist = Infinity;
+        let bestDir = 'Right';
+
+        for (let i = 0; i < allRooms.length; i++) {
+          if (st.rooms[allRooms[i]] === 'dirty') {
+            const dist = Math.abs(i - currentIdx);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestDir = (i > currentIdx) ? 'Right' : 'Left';
+            }
+          }
+        }
+
+        if (bestDist < Infinity) return bestDir;
+
+        // All clean — patrol
+        if (currentIdx >= allRooms.length - 1) return 'Left';
+        return 'Right';
+      }
+
+      case 'random': {
+        const actions = ['Left', 'Right', 'Suck', 'NoOp'];
+        return actions[Math.floor(Math.random() * actions.length)];
+      }
+
+      default:
+        return 'NoOp';
+    }
+  }
+
+  function updateMode4Visual(st) {
+    const allRooms = Object.keys(st.rooms);
+
+    allRooms.forEach(k => {
+      const el = document.getElementById(`mode4-room-${k.toLowerCase()}`);
+      if (!el) return;
+
+      // Update clean/dirty class
+      el.className = `room ${st.rooms[k]}`;
+
+      // Handle unknown overlay for partial observability
+      const existingOverlay = el.querySelector('.unknown-overlay');
+      if (partiallyObservable && !st.visited[k]) {
+        if (!existingOverlay) {
+          const overlay = document.createElement('div');
+          overlay.className = 'unknown-overlay';
+          overlay.textContent = '?';
+          el.appendChild(overlay);
+        }
+      } else {
+        if (existingOverlay) existingOverlay.remove();
+      }
+    });
+
+    // Move agent
+    const agentEl = document.querySelector('#mode4-rooms .agent');
+    if (agentEl) {
+      const targetRoom = document.getElementById(`mode4-room-${st.agentPos.toLowerCase()}`);
+      if (targetRoom) targetRoom.appendChild(agentEl);
+    }
+  }
+
+  function tick() {
+    if (!mode4Running) return;
+
+    if (step >= maxSteps) {
+      // Done
+      mode4Running = false;
+      runBtn.disabled = false;
+
+      const cleanCount = Object.values(st_rooms()).filter(v => v === 'clean').length;
+      const totalRooms = Object.keys(st_rooms()).length;
+      const allClean = cleanCount === totalRooms;
+
+      if (allClean) state.score += totalRooms * 5; // completion bonus
+
+      const pct = Math.round((state.score / maxPossible) * 100);
+      scoreEl.textContent = `Score: ${state.score} / ${maxPossible} (${pct}%)`;
+
+      let verdict = '';
+      if (pct >= 90) verdict = '🏆 Outstanding performance!';
+      else if (pct >= 70) verdict = '👍 Good — agent handled the conditions well.';
+      else if (pct >= 50) verdict = '📊 Mediocre — try a different agent type.';
+      else verdict = '⚠️ Poor — this environment property challenges the agent!';
+
+      logEl.innerHTML += `<div class="log-entry final">✅ Complete! Score: ${state.score}/${maxPossible} (${pct}%)<br>${verdict}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+      return;
+    }
+
+    step++;
+    state.steps = step;
+    state._suckFailed = false;
+    state._newDirt = null;
+
+    // Agent selects action
+    const percept = getPerceptMode4(state);
+    const action = getAgentAction(state, agentType);
+
+    // Apply action
+    applyActionMode4(state, action);
+
+    // Dynamic: maybe add new dirt
+    const dirtAdded = dynamicDirt(state);
+
+    // Score: +1 per clean room this step
+    const cleanNow = Object.values(state.rooms).filter(v => v === 'clean').length;
+    state.score += cleanNow;
+
+    // Update visual
+    updateMode4Visual(state);
+
+    // Build log entry
+    const actionSymbols = { Left: '←', Right: '→', Suck: '⬇', NoOp: '•' };
+    const sym = actionSymbols[action] || action;
+    let logLine = `<div class="log-entry"><strong>Step ${step}:</strong> ` +
+      `[${percept.location}, ${percept.status}] → <strong>${sym} ${action}</strong> | `;
+
+    // Room status summary
+    const roomSummary = Object.entries(state.rooms)
+      .map(([k, v]) => `${k}:${v === 'clean' ? '✓' : '✗'}`)
+      .join(' ');
+    logLine += `Rooms: ${roomSummary} <span class="log-points">(+${cleanNow})</span>`;
+
+    if (state._suckFailed) logLine += ' <span style="color:#e53e3e">⚡ Suck failed!</span>';
+    if (dirtAdded) logLine += ` <span style="color:#d69e2e">🌱 New dirt in ${state._newDirt}!</span>`;
+
+    logLine += '</div>';
+    logEl.innerHTML += logLine;
+    logEl.scrollTop = logEl.scrollHeight;
+
+    scoreEl.textContent = `Score: ${state.score} / ${maxPossible}`;
+
+    mode4TimeoutId = setTimeout(tick, 500);
+  }
+
+  // Helper to access state.rooms (used in completion check)
+  function st_rooms() { return state.rooms; }
+
+  tick();
+}
+
+// ===== MODE 5 & 6 (Part C) =====
+// ===== MODE 5: STATE SPACE DIAGRAM =====
+// HTML content:
+
+
+// JavaScript logic:
+
+const MODE5_STATES = [
+  { id: 'ACC', agent: 'A', rooms: ['C', 'C'], label: 'A, [C,C]' },
+  { id: 'ACD', agent: 'A', rooms: ['C', 'D'], label: 'A, [C,D]' },
+  { id: 'ADC', agent: 'A', rooms: ['D', 'C'], label: 'A, [D,C]' },
+  { id: 'ADD', agent: 'A', rooms: ['D', 'D'], label: 'A, [D,D]' },
+  { id: 'BCC', agent: 'B', rooms: ['C', 'C'], label: 'B, [C,C]' },
+  { id: 'BCD', agent: 'B', rooms: ['C', 'D'], label: 'B, [C,D]' },
+  { id: 'BDC', agent: 'B', rooms: ['D', 'C'], label: 'B, [D,C]' },
+  { id: 'BDD', agent: 'B', rooms: ['D', 'D'], label: 'B, [D,D]' }
+];
+
+// Node positions in SVG coordinates
+const MODE5_POSITIONS = {
+  ACC: { cx: 95,  cy: 80  },
+  ACD: { cx: 215, cy: 80  },
+  ADC: { cx: 335, cy: 80  },
+  ADD: { cx: 455, cy: 80  },
+  BCC: { cx: 95,  cy: 260 },
+  BCD: { cx: 215, cy: 260 },
+  BDC: { cx: 335, cy: 260 },
+  BDD: { cx: 455, cy: 260 }
+};
+
+const MODE5_NODE_W = 96;
+const MODE5_NODE_H = 44;
+const MODE5_RX = 10;
+
+// Build transition list
+function buildMode5Transitions() {
+  const transitions = [];
+  // For each state, enumerate actions
+  MODE5_STATES.forEach(s => {
+    const rooms = [...s.rooms];
+    const agent = s.agent;
+
+    // Suck action
+    if (rooms[agent === 'A' ? 0 : 1] === 'D') {
+      // Cleans current room → new state
+      const newRooms = [...rooms];
+      newRooms[agent === 'A' ? 0 : 1] = 'C';
+      const targetId = agent + newRooms.join('');
+      transitions.push({ from: s.id, to: targetId, type: 'suck', label: 'Suck' });
+    } else {
+      // Already clean → NoOp self-loop
+      transitions.push({ from: s.id, to: s.id, type: 'noop', label: 'NoOp' });
+    }
+
+    // Move action
+    if (agent === 'A') {
+      // Right → B
+      const targetId = 'B' + rooms.join('');
+      transitions.push({ from: s.id, to: targetId, type: 'move', label: 'Right' });
+    } else {
+      // Left → A
+      const targetId = 'A' + rooms.join('');
+      transitions.push({ from: s.id, to: targetId, type: 'move', label: 'Left' });
+    }
+
+    // Wall NoOp: Left from A or Right from B
+    if (agent === 'A') {
+      transitions.push({ from: s.id, to: s.id, type: 'noop', label: 'Left (wall)' });
+    } else {
+      transitions.push({ from: s.id, to: s.id, type: 'noop', label: 'Right (wall)' });
+    }
+  });
+  return transitions;
+}
+
+function initMode5() {
+  renderStateGraph();
+}
+
+function renderStateGraph() {
+  const edgesLayer = document.getElementById('edgesLayer');
+  const nodesLayer = document.getElementById('nodesLayer');
+  if (!edgesLayer || !nodesLayer) return;
+
+  edgesLayer.innerHTML = '';
+  nodesLayer.innerHTML = '';
+
+  const transitions = buildMode5Transitions();
+  const drawnMoveEdges = new Set();
+  const drawnSuckEdges = new Set();
+
+  // Draw edges
+  transitions.forEach(t => {
+    const fromPos = MODE5_POSITIONS[t.from];
+    const toPos = MODE5_POSITIONS[t.to];
+
+    if (t.type === 'move') {
+      // Blue vertical edge between rows
+      const edgeKey = [t.from, t.to].sort().join('-');
+      if (drawnMoveEdges.has(edgeKey)) return; // already drawn (bidirectional)
+      drawnMoveEdges.add(edgeKey);
+
+      const x = fromPos.cx;
+      const y1 = fromPos.cy + MODE5_NODE_H / 2 + 2;
+      const y2 = toPos.cy - MODE5_NODE_H / 2 - 2;
+
+      const line = svgEl('line', {
+        x1: x, y1: y1, x2: x, y2: y2,
+        stroke: '#2980b9', 'stroke-width': 2,
+        'marker-end': 'url(#arrowBlue)',
+        'data-edge': edgeKey
+      });
+      edgesLayer.appendChild(line);
+
+      // Reverse arrow
+      const line2 = svgEl('line', {
+        x1: x, y1: y2, x2: x, y2: y1,
+        stroke: '#2980b9', 'stroke-width': 2,
+        'marker-end': 'url(#arrowBlue)'
+      });
+      // Only add reverse if target also has a move back (it always does)
+      edgesLayer.appendChild(line2);
+
+    } else if (t.type === 'suck') {
+      // Green horizontal edge within same row
+      const edgeKey = t.from + '>' + t.to;
+      if (drawnSuckEdges.has(edgeKey)) return;
+      drawnSuckEdges.add(edgeKey);
+
+      const row = fromPos.cy;
+      const x1 = fromPos.cx - MODE5_NODE_W / 2 - 2;
+      const x2 = toPos.cx + MODE5_NODE_W / 2 + 2;
+
+      // Curved arrow above the row
+      const midX = (fromPos.cx + toPos.cx) / 2;
+      const curveY = row - 38;
+
+      const path = svgEl('path', {
+        d: `M${fromPos.cx},${row - MODE5_NODE_H / 2} Q${midX},${curveY} ${toPos.cx},${row - MODE5_NODE_H / 2}`,
+        stroke: '#27ae60', 'stroke-width': 2, fill: 'none',
+        'marker-end': 'url(#arrowGreen)'
+      });
+      edgesLayer.appendChild(path);
+
+    } else if (t.type === 'noop') {
+      // Grey self-loop — only draw one per node (avoid duplicates)
+      // Check if we already drew a self-loop for this node
+      const existing = nodesLayer.querySelector(`[data-selfloop="${t.from}"]`);
+      if (existing) return;
+
+      const pos = fromPos;
+      const loopR = 12;
+      const cx = pos.cx + MODE5_NODE_W / 2 + 4;
+      const cy = pos.cy - MODE5_NODE_H / 2 - 4;
+
+      const circle = svgEl('circle', {
+        cx: cx, cy: cy, r: loopR,
+        stroke: '#95a5a6', 'stroke-width': 1.5, fill: 'none',
+        'marker-end': 'url(#arrowGrey)',
+        'data-selfloop': t.from
+      });
+      edgesLayer.appendChild(circle);
+    }
+  });
+
+  // Draw nodes
+  MODE5_STATES.forEach(s => {
+    const pos = MODE5_POSITIONS[s.id];
+    const g = svgEl('g', {
+      'data-state-id': s.id,
+      class: 'state-node',
+      style: 'cursor:pointer'
+    });
+
+    const rect = svgEl('rect', {
+      x: pos.cx - MODE5_NODE_W / 2,
+      y: pos.cy - MODE5_NODE_H / 2,
+      width: MODE5_NODE_W,
+      height: MODE5_NODE_H,
+      rx: MODE5_RX,
+      fill: '#ecf0f1',
+      stroke: '#7f8c8d',
+      'stroke-width': 2,
+      'data-rect': s.id
+    });
+    g.appendChild(rect);
+
+    // Agent letter
+    const txt1 = svgEl('text', {
+      x: pos.cx, y: pos.cy - 5,
+      'text-anchor': 'middle',
+      'font-size': '12', 'font-weight': 'bold',
+      fill: '#2c3e50'
+    });
+    txt1.textContent = s.agent;
+    g.appendChild(txt1);
+
+    // Dirt config
+    const txt2 = svgEl('text', {
+      x: pos.cx, y: pos.cy + 12,
+      'text-anchor': 'middle',
+      'font-size': '11',
+      fill: '#555'
+    });
+    txt2.textContent = `[${s.rooms[0]},${s.rooms[1]}]`;
+    g.appendChild(txt2);
+
+    // Click handler
+    g.addEventListener('click', () => {
+      const ann = document.getElementById('stateAnnotation');
+      if (ann) {
+        const agentFull = s.agent === 'A' ? 'Room A' : 'Room B';
+        const roomA = s.rooms[0] === 'C' ? 'Clean' : 'Dirty';
+        const roomB = s.rooms[1] === 'C' ? 'Clean' : 'Dirty';
+        ann.innerHTML = `<strong>State: ${s.label}</strong><br>Agent at ${agentFull}. Room A: ${roomA}, Room B: ${roomB}.`;
+      }
+      // Highlight this node
+      highlightState5ById(s.id);
+    });
+
+    nodesLayer.appendChild(g);
+  });
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (attrs) {
+    Object.keys(attrs).forEach(k => el.setAttribute(k, attrs[k]));
+  }
+  return el;
+}
+
+/**
+ * Highlight a state node in the Mode 5 diagram.
+ * Call from Mode 1/2 with: highlightState5ById('ADD') etc.
+ */
+function highlightState5ById(stateId) {
+  // Remove previous highlights
+  document.querySelectorAll('#nodesLayer .state-node rect').forEach(r => {
+    r.setAttribute('stroke', '#7f8c8d');
+    r.setAttribute('stroke-width', '2');
+    r.setAttribute('fill', '#ecf0f1');
+    r.removeAttribute('filter');
+  });
+
+  // Apply highlight
+  const rect = document.querySelector(`#nodesLayer rect[data-rect="${stateId}"]`);
+  if (rect) {
+    rect.setAttribute('stroke', '#d4a853');
+    rect.setAttribute('stroke-width', '3.5');
+    rect.setAttribute('fill', '#fef9e7');
+    rect.setAttribute('filter', 'url(#glowGold)');
+  }
+}
+
+/**
+ * Convert game state to Mode 5 state id for highlighting.
+ */
+function stateToMode5Id(state) {
+  const agent = state.agentPos; // 'A' or 'B'
+  const rA = state.rooms.A === 'clean' ? 'C' : 'D';
+  const rB = state.rooms.B === 'clean' ? 'C' : 'D';
+  return agent + rA + rB;
+}
+
+
+// ===== MODE 6: PERFORMANCE COMPARISON =====
+// HTML content:
+
+
+// JavaScript logic:
+
+const COMP_AGENTS = [
+  { name: 'Simple Reflex', key: 'simple', color: '#3498db', fn: null },
+  { name: 'Model-Based',   key: 'model',  color: '#9b59b6', fn: null },
+  { name: 'Goal-Based',    key: 'goal',   color: '#2ecc71', fn: null },
+  { name: 'Random',        key: 'random', color: '#e74c3c', fn: null }
+];
+
+const COMP_MAX_STEPS = 50;
+
+function initMode6() {
+  // Wire agent functions from the global scope (defined in part-a)
+  COMP_AGENTS[0].fn = (typeof simpleReflex === 'function') ? simpleReflex : null;
+  COMP_AGENTS[1].fn = (typeof modelBased === 'function') ? modelBased : null;
+  COMP_AGENTS[2].fn = (typeof goalBased === 'function') ? goalBased : null;
+  COMP_AGENTS[3].fn = (typeof randomAction === 'function') ? randomAction : null;
+}
+
+function runComparison(useMods) {
+  const progress = document.getElementById('compProgress');
+  const results = document.getElementById('compResults');
+  const tbody = document.getElementById('compTableBody');
+  const barChart = document.getElementById('compBarChart');
+  const replayArea = document.getElementById('compReplayArea');
+
+  if (progress) {
+    progress.style.display = 'block';
+    progress.textContent = 'Running simulations...';
+  }
+  if (results) results.style.display = 'none';
+
+  // Small delay so UI updates
+  setTimeout(() => {
+    const initial = { agentPos: 'A', rooms: { A: 'dirty', B: 'dirty' }, score: 0, steps: 0 };
+
+    // Check for environment mods from Mode 4
+    let envMods = null;
+    if (useMods && typeof getEnvironmentMods === 'function') {
+      envMods = getEnvironmentMods();
+    }
+
+    const results_data = [];
+
+    COMP_AGENTS.forEach(agentDef => {
+      const state = (typeof deepCopy === 'function') ? deepCopy(initial) : JSON.parse(JSON.stringify(initial));
+
+      // For model-based agent, create an internal model
+      const model = { visited: new Set(), lastAction: null };
+      let stepsToGoal = -1;
+      let goalReached = false;
+      const history = [JSON.parse(JSON.stringify(state))];
+
+      for (let step = 0; step < COMP_MAX_STEPS; step++) {
+        // Check if goal reached (both clean)
+        if (state.rooms.A === 'clean' && state.rooms.B === 'clean') {
+          goalReached = true;
+          stepsToGoal = step;
+          break;
+        }
+
+        const percept = (typeof getPercept === 'function') ? getPercept(state) : { location: state.agentPos, status: state.rooms[state.agentPos] };
+
+        // Apply environment mods to percept
+        let modPercept = { ...percept };
+        if (envMods) {
+          // Partial observability: may not see the other room
+          if (envMods.partialObs) {
+            modPercept.otherRoomStatus = null;
+          }
+          // Stochastic: action may fail
+          if (envMods.stochastic && Math.random() < (envMods.slipChance || 0.2)) {
+            // Random action instead
+            const actions = ['suck', 'left', 'right'];
+            const action = actions[Math.floor(Math.random() * actions.length)];
+            if (typeof applyAction === 'function') applyAction(state, action);
+            history.push(JSON.parse(JSON.stringify(state)));
+            continue;
+          }
+        }
+
+        let action;
+        if (agentDef.key === 'simple' && agentDef.fn) {
+          action = agentDef.fn(modPercept);
+        } else if (agentDef.key === 'model' && agentDef.fn) {
+          action = agentDef.fn(modPercept, model);
+        } else if (agentDef.key === 'goal' && agentDef.fn) {
+          action = agentDef.fn(state);
+        } else if (agentDef.key === 'random' && agentDef.fn) {
+          action = agentDef.fn();
+        } else {
+          // Fallback: random
+          const actions = ['suck', 'left', 'right'];
+          action = actions[Math.floor(Math.random() * actions.length)];
+        }
+
+        if (typeof applyAction === 'function') {
+          applyAction(state, action);
+        }
+
+        // Track score (same scoring as Mode 1: -1 per step, +10 per clean room at end)
+        state.score = (state.score || 0) - 1;
+        state.steps = step + 1;
+
+        history.push(JSON.parse(JSON.stringify(state)));
+      }
+
+      // Final goal check after loop
+      if (!goalReached && state.rooms.A === 'clean' && state.rooms.B === 'clean') {
+        goalReached = true;
+        stepsToGoal = state.steps;
+      }
+
+      // Bonus for clean rooms at end
+      if (state.rooms.A === 'clean') state.score += 10;
+      if (state.rooms.B === 'clean') state.score += 10;
+
+      results_data.push({
+        name: agentDef.name,
+        color: agentDef.color,
+        score: state.score,
+        stepsToGoal: stepsToGoal,
+        goalReached: goalReached,
+        history: history
+      });
+    });
+
+    // Render results
+    renderCompTable(tbody, results_data);
+    renderCompBars(barChart, results_data);
+    renderCompReplay(replayArea, results_data);
+
+    if (progress) progress.style.display = 'none';
+    if (results) results.style.display = 'block';
+  }, 100);
+}
+
+function renderCompTable(tbody, data) {
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${r.color};margin-right:6px;vertical-align:middle;"></span>${r.name}</td>
+      <td><strong>${r.score}</strong></td>
+      <td>${r.stepsToGoal >= 0 ? r.stepsToGoal : '—'}</td>
+      <td>${r.goalReached ? '✅' : '❌'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCompBars(container, data) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Find max absolute score for scaling
+  const maxScore = Math.max(...data.map(d => Math.abs(d.score)), 1);
+
+  data.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.marginBottom = '8px';
+
+    const label = document.createElement('span');
+    label.textContent = r.name;
+    label.style.width = '120px';
+    label.style.fontSize = '13px';
+    label.style.fontWeight = '600';
+    label.style.flexShrink = '0';
+
+    const barContainer = document.createElement('div');
+    barContainer.className = 'bar-chart';
+    barContainer.style.flex = '1';
+    barContainer.style.background = '#ecf0f1';
+    barContainer.style.borderRadius = '6px';
+    barContainer.style.height = '28px';
+    barContainer.style.position = 'relative';
+    barContainer.style.overflow = 'hidden';
+
+    const barFill = document.createElement('div');
+    barFill.className = 'bar-fill';
+    const pct = Math.max((Math.abs(r.score) / maxScore) * 100, 3);
+    barFill.style.width = pct + '%';
+    barFill.style.height = '100%';
+    barFill.style.background = r.color;
+    barFill.style.borderRadius = '6px';
+    barFill.style.transition = 'width 0.6s ease';
+    barFill.style.display = 'flex';
+    barFill.style.alignItems = 'center';
+    barFill.style.justifyContent = 'flex-end';
+    barFill.style.paddingRight = '8px';
+    barFill.style.color = '#fff';
+    barFill.style.fontSize = '12px';
+    barFill.style.fontWeight = 'bold';
+    barFill.textContent = r.score;
+
+    barContainer.appendChild(barFill);
+    row.appendChild(label);
+    row.appendChild(barContainer);
+    container.appendChild(row);
+  });
+}
+
+function renderCompReplay(container, data) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  data.forEach(r => {
+    const card = document.createElement('div');
+    card.style.cssText = 'flex:1; min-width:200px; background:#fafafa; border-radius:8px; padding:12px; border:2px solid ' + r.color + '22;';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:bold; margin-bottom:8px; color:' + r.color + ';';
+    title.textContent = r.name + (r.goalReached ? ' ✅' : ' ❌');
+    card.appendChild(title);
+
+    // Mini step-by-step display
+    const stepsDiv = document.createElement('div');
+    stepsDiv.style.cssText = 'font-size:11px; color:#555; max-height:180px; overflow-y:auto; font-family:monospace;';
+
+    const maxShow = Math.min(r.history.length, 12);
+    for (let i = 0; i < maxShow; i++) {
+      const h = r.history[i];
+      const rA = h.rooms.A === 'clean' ? 'C' : 'D';
+      const rB = h.rooms.B === 'clean' ? 'C' : 'D';
+      const line = document.createElement('div');
+      line.textContent = `t=${i}: @${h.agentPos} [${rA},${rB}]`;
+      if (i === 0) line.style.color = r.color;
+      stepsDiv.appendChild(line);
+    }
+    if (r.history.length > maxShow) {
+      const more = document.createElement('div');
+      more.textContent = `... (${r.history.length - maxShow} more steps)`;
+      more.style.color = '#999';
+      stepsDiv.appendChild(more);
+    }
+
+    card.appendChild(stepsDiv);
+
+    // Status badge
+    const badge = document.createElement('div');
+    badge.style.cssText = 'margin-top:8px; font-size:12px; font-weight:bold;';
+    badge.style.color = r.goalReached ? '#27ae60' : '#e74c3c';
+    badge.textContent = r.goalReached
+      ? `Goal in ${r.stepsToGoal} steps!`
+      : `Not solved in ${COMP_MAX_STEPS} steps`;
+    card.appendChild(badge);
+
+    container.appendChild(card);
+  });
+}
+</script>
+<!-- ═══ delight:agent-label-nudge BEGIN ═══ -->
+<style>
+/* kind:nudge trigger:hover target:.agent-card h3 */
+@keyframes agent-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } } .agent-card h3:hover { animation: agent-nudge 300ms ease-out; } @media (prefers-reduced-motion: reduce) { .agent-card h3:hover { animation: none; } }
+</style>
+
+<!-- ═══ delight:agent-label-nudge END ═══ -->
+</body>
+</html>
